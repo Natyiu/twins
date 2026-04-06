@@ -1,5 +1,6 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import './Faq.css'
+import { capture, captureException } from './posthog'
 
 /** Decorative sunburst / barcode ring — fixed behind content */
 function RadialBurst() {
@@ -101,9 +102,24 @@ function FaqItem({
   question: ReactNode
   children: ReactNode
 }) {
+  const [open, setOpen] = useState(false)
+
+  function handleToggle() {
+    try {
+      const next = !open
+      setOpen(next)
+      const questionText = typeof question === 'string' ? question : undefined
+      capture(next ? 'faq_item_expanded' : 'faq_item_collapsed', {
+        question: questionText,
+      })
+    } catch (err) {
+      captureException(err)
+    }
+  }
+
   return (
-    <div className="fi">
-      <button type="button" className="fq">
+    <div className={`fi${open ? ' fi-open' : ''}`}>
+      <button type="button" className="fq" onClick={handleToggle} aria-expanded={open}>
         <span className="qt">{question}</span>
         <span className="fq-meter" aria-hidden>
           {Array.from({ length: 8 }, (_, i) => (
@@ -111,7 +127,7 @@ function FaqItem({
           ))}
         </span>
         <span className="tgl" aria-hidden>
-          +
+          {open ? '−' : '+'}
         </span>
       </button>
       <div className="fa">
